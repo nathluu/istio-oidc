@@ -1,0 +1,88 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: oauth2-proxy
+  labels:
+    istio-injection: enabled
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: oauth2-proxy
+  namespace: oauth2-proxy
+stringData:
+  OAUTH2_PROXY_CLIENT_ID: 07a478bb-ef49-1234-8e61-6a1318ff2e6f
+  OAUTH2_PROXY_CLIENT_SECRET: i057Q~7gpkdfdfsdldkkueHHV13icHo~O
+  OAUTH2_PROXY_COOKIE_SECRET: 4573191e00954be8424fd932c3cef751
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: oauth2-proxy
+  namespace: oauth2-proxy
+spec:
+  selector:
+    app: oauth2-proxy
+  ports:
+  - name: http
+    port: 4180
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oauth2-proxy
+  namespace: oauth2-proxy
+spec:
+  selector:
+    matchLabels:
+      app: oauth2-proxy
+  template:
+    metadata:
+      labels:
+        app: oauth2-proxy
+    spec:
+      containers:
+      - name: oauth2-proxy
+        image: quay.io/oauth2-proxy/oauth2-proxy:v6.1.1
+        args:
+        - --provider=oidc
+        - --cookie-secure=true
+        - --cookie-samesite=lax
+        - --cookie-refresh=1h
+        - --cookie-expire=4h
+        - --cookie-name=_oauth2_proxy_istio_ingressgateway
+        - --set-authorization-header=true
+        - --email-domain=*
+        - --http-address=0.0.0.0:4180
+        - --upstream=static://200
+        - --skip-provider-button=true
+        - --whitelist-domain=app.tmanet.com
+        - --oidc-issuer-url=https://login.microsoftonline.com/94344432-a3fb-4e7c-1db0-bf60c41eea7e/v2.0
+        env:
+        - name: OAUTH2_PROXY_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: oauth2-proxy
+              key: OAUTH2_PROXY_CLIENT_ID
+        - name: OAUTH2_PROXY_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: oauth2-proxy
+              key: OAUTH2_PROXY_CLIENT_SECRET
+        - name: OAUTH2_PROXY_COOKIE_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: oauth2-proxy
+              key: OAUTH2_PROXY_COOKIE_SECRET
+        resources:
+          requests:
+            cpu: 10m
+            memory: 100Mi
+        ports:
+        - containerPort: 4180
+          protocol: TCP
+        readinessProbe:
+          periodSeconds: 3
+          httpGet:
+            path: /ping
+            port: 4180

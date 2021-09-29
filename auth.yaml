@@ -1,0 +1,26 @@
+apiVersion: security.istio.io/v1beta1
+kind: RequestAuthentication
+metadata:
+  name: istio-ingressgateway-nginx
+  namespace: istio-system
+spec:
+  selector:
+    matchLabels:
+      app: istio-ingressgateway
+  jwtRules:
+  - issuer: https://login.microsoftonline.com/94340815-a3fb-4e7c-aab0-bf60c41eea7e/v2.0
+    jwksUri: https://login.microsoftonline.com/94340815-a3fb-4e7c-aab0-bf60c41eea7e/discovery/v2.0/keys
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: istio-ingressgateway-nginx
+  namespace: istio-system
+spec:
+  selector:
+    matchLabels:
+      app: istio-ingressgateway
+  rules:
+  - from:
+    - source:
+        requestPrincipals: ["*"]
